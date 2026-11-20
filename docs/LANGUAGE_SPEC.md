@@ -105,3 +105,12 @@ for (int i = 1; i <= 3; i++) {
     print("Step " + i);
 }
 // float version = "1.0";   -> E201 type mismatch: expected float, received string
+## Phase 3 decisions
+
+- Uninitialized variables take the zero value of their type: `0`, `0.0`, `false`, `""`.
+- Division by zero (int or float, `/` or `%`) is E501.
+- Integer overflow (`+ - *`, unary `-`, and `int()` of a large float) is E502. Add E502 to the error table.
+- `&&` and `||` short-circuit.
+- `int(x)` truncates a float toward zero. `float(x)` accepts int or float. `string(x)` converts any value to text. `bool(x)` accepts only bool.
+- A float prints with a decimal point, for example `3.0`.
+- Phase 3 runtime type checks are a safety net. Phase 4 moves most of them before execution.

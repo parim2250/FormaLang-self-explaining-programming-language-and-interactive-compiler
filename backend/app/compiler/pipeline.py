@@ -1,13 +1,14 @@
 """Pipeline: runs the compiler stages in order and collects one CompileResult.
 
 Contract: fields may be added, never renamed or removed.
-Diagnostic.stage uses lowercase stage keys: "lexer", "parser".
+Diagnostic.stage uses lowercase stage keys: "lexer", "parser", "interpreter".
 """
 from __future__ import annotations
 
 import time
 from dataclasses import asdict, dataclass
 
+from app.compiler.interpreter import Interpreter, RunError, find_unsupported
 from app.compiler.lexer import tokenize
 from app.compiler.parser import count_nodes, parse
 
@@ -110,15 +111,41 @@ def run_pipeline(source: str) -> CompileResult:
         )
 
     nodes = count_nodes(parsed.ast)
+    parser_stage = StageStatus("Parser", "passed", _ms(started), f"{nodes} AST nodes")
+    semantic_stage = _not_implemented("Semantic analyzer")  # Phase 4
+
+    # Stage 3: interpreter. Constructs from later phases are found before anything runs.
+    started = time.perf_counter()
+    blocked = find_unsupported(parsed.ast)
+    if blocked is not None:
+        feature, phase, _where = blocked
+        stages = [
+            lexer_stage,
+            parser_stage,
+            semantic_stage,
+            StageStatus("Interpreter", "not_implemented", 0.0, f"{feature} · Phase {phase}"),
+        ]
+        output = [f"Not run yet: {feature} (Phase {phase}). Nothing was executed."]
+        return CompileResult(False, output, [], stages, tokens_out, parsed.ast, [], [])
+
+    interp = Interpreter()
+    try:
+        interp.run(parsed.ast)
+    except RunError as err:
+        diagnostics.append(Diagnostic("interpreter", err.code, err.message, err.line, err.col))
+        stages = [
+            lexer_stage,
+            parser_stage,
+            semantic_stage,
+            StageStatus("Interpreter", "failed", _ms(started), "1 error(s)"),
+        ]
+        output = interp.output + ["Stopped at the interpreter. See Problems for details."]
+        return CompileResult(False, output, diagnostics, stages, tokens_out, parsed.ast, [], [])
+
     stages = [
         lexer_stage,
-        StageStatus("Parser", "passed", _ms(started), f"{nodes} AST nodes"),
-        _not_implemented("Semantic analyzer"),
-        _not_implemented("Interpreter"),
+        parser_stage,
+        semantic_stage,
+        StageStatus("Interpreter", "passed", _ms(started), f"{len(interp.output)} line(s) printed"),
     ]
-    output = [
-        f"Lexer: {token_count} tokens, no lexical errors.",
-        f"Parser: {nodes} AST nodes, no syntax errors.",
-        "Semantic analysis and execution are not wired up yet (Phase 3), so the program was not run.",
-    ]
-    return CompileResult(False, output, [], stages, tokens_out, parsed.ast, [], [])
+    return CompileResult(True, interp.output, [], stages, tokens_out, parsed.ast, [], [])

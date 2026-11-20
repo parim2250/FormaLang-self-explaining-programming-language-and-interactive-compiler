@@ -1,11 +1,12 @@
 from app.compiler.pipeline import run_pipeline
 
 
-def test_valid_program_passes_parser():
+def test_valid_program_runs():
     r = run_pipeline("int x = 1;")
-    assert [s.status for s in r.stages] == ["passed", "passed", "not_implemented", "not_implemented"]
+    assert [s.status for s in r.stages] == ["passed", "passed", "not_implemented", "passed"]
+    assert r.ok is True
+    assert r.output == []
     assert r.ast["type"] == "Program"
-    assert r.output[1].startswith("Parser:")
     assert r.diagnostics == []
 
 
