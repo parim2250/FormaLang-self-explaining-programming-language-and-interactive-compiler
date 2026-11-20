@@ -146,3 +146,31 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
 .setting-title { font-weight: 600; margin-bottom: 2px; }
 .setting input[type=checkbox] { accent-color: var(--accent-600); width: 16px; height: 16px; }
+
+/* ---------- Phase 1: lexer detail ---------- */
+.stage-detail.rich { border: 0; padding: 0; margin-top: 10px; }
+.lex-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 8px; }
+.lex-card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 10px 12px; min-width: 0; }
+.lex-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.lex-note { font-size: 12px; padding: 6px 10px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(248,113,113,.35); background: rgba(248,113,113,.06); }
+.lex-note.err { color: var(--err); }
+.stream { display: flex; flex-wrap: wrap; gap: 6px; max-height: 96px; overflow: auto; }
+.tok { font: 12px var(--mono); padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
+.tok:hover { border-color: #33333f; }
+.tok.active { box-shadow: 0 0 0 1px var(--accent); }
+.tok.kw { color: #c4b5fd; }
+.tok.ty { color: #7dd3fc; }
+.tok.id { color: var(--text); }
+.tok.num { color: #fdba74; }
+.tok.str { color: #86efac; }
+.tok.op { color: var(--muted); }
+.lex-info { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.lex-info b { color: var(--text); }
+.lex-caption { margin-top: 6px; font-size: 12px; }
+.dfa { width: 100%; height: auto; display: block; }
+.dfa text { font-family: var(--mono); font-size: 11px; }
+.dfa .dfa-node { fill: var(--text); }
+.dfa .dfa-lbl { fill: var(--accent); }
+.dfa .dfa-ok { fill: var(--ok); }
+.problem { cursor: pointer; }
+.problem:hover { background: var(--panel-2); }
