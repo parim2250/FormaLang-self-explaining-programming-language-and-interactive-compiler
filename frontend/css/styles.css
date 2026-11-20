@@ -279,3 +279,51 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
   font-family: "JetBrains Mono", ui-monospace, monospace;
   white-space: nowrap;
 }
+/* ---------- Phase 5: execution trace (trace-view.js) ---------- */
+.tv-card {
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 10px;
+  background: var(--surface, #151922);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.tv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.tv-title { font-weight: 600; font-size: 13px; }
+.tv-count { font-size: 12px; color: var(--muted, #8b93a7); }
+.tv-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tv-btn {
+  background: var(--surface-2, #1d2330);
+  color: inherit;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.tv-btn:hover { border-color: var(--accent, #7aa2f7); }
+.tv-table-wrap { max-height: 320px; overflow: auto; }
+.tv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tv-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted, #8b93a7);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border, #2a2f3a);
+  position: sticky;
+  top: 0;
+  background: var(--surface, #151922);
+}
+.tv-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-soft, #1f2530);
+  vertical-align: top;
+}
+.tv-table code { font-family: "JetBrains Mono", monospace; }
+.tv-row { cursor: pointer; }
+.tv-row:hover td { background: rgba(255, 255, 255, 0.03); }
+.tv-row.active td { background: rgba(122, 162, 247, 0.14); }
+.tv-num { color: var(--muted, #8b93a7); width: 56px; }
+.tv-empty, .tv-note { color: var(--muted, #8b93a7); font-size: 13px; padding: 8px 4px; }
+.tv-footer { font-size: 12px; color: var(--muted, #8b93a7); padding: 4px 2px; }

@@ -1,12 +1,13 @@
-"""Pipeline: runs the compiler stages in order and collects one CompileResult.
+"""Runs every compiler stage in order and returns one structured result.
 
-Contract: fields may be added, never renamed or removed.
-Diagnostic.stage uses lowercase stage keys: "lexer", "parser", "semantic", "interpreter".
+Contract fields may gain new keys in later phases but are never renamed or removed.
 """
+
 from __future__ import annotations
 
 import time
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from app.compiler.interpreter import Interpreter, RunError, find_unsupported
 from app.compiler.lexer import tokenize
@@ -25,13 +26,66 @@ class Diagnostic:
     line: int
     col: int
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "stage": self.stage,
+            "code": self.code,
+            "message": self.message,
+            "line": self.line,
+            "col": self.col,
+        }
+
 
 @dataclass
 class StageStatus:
     name: str
-    status: str  # pending | passed | failed | skipped | not_implemented
+    status: str
     time_ms: float = 0.0
     detail: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "status": self.status,
+            "time_ms": round(self.time_ms, 3),
+            "detail": self.detail,
+        }
+
+
+def _token_dict(token: Any) -> dict[str, Any]:
+    if isinstance(token, dict):
+        return token
+    to_dict = getattr(token, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    return asdict(token)
+
+
+def _as_dict(item: Any) -> dict[str, Any]:
+    """Accept either a plain dict or an object with to_dict()."""
+    if isinstance(item, dict):
+        return item
+    return item.to_dict()
+
+
+def _field(item: Any, key: str) -> Any:
+    """Read a field from either a dict or an object."""
+    if isinstance(item, dict):
+        return item[key]
+    return getattr(item, key)
+
+
+def _diagnostics(stage: str, items: list[Any]) -> list[Diagnostic]:
+    return [
+        Diagnostic(
+            stage,
+            _field(item, "code"),
+            _field(item, "message"),
+            _field(item, "line"),
+            _field(item, "col"),
+        )
+        for item in items
+    ]
 
 
 @dataclass
@@ -40,130 +94,112 @@ class CompileResult:
     output: list[str]
     diagnostics: list[Diagnostic]
     stages: list[StageStatus]
-    tokens: list[dict]
+    tokens: list[dict[str, Any]]
     ast: dict | None
     symbols: list[dict]
     trace: list[dict]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ok": self.ok,
             "output": self.output,
-            "diagnostics": [asdict(d) for d in self.diagnostics],
-            "stages": [asdict(s) for s in self.stages],
-            "tokens": self.tokens,
+            "diagnostics": [d.to_dict() for d in self.diagnostics],
+            "stages": [s.to_dict() for s in self.stages],
+            "tokens": list(self.tokens),
             "ast": self.ast,
             "symbols": self.symbols,
             "trace": self.trace,
         }
 
 
-def _ms(started: float) -> float:
-    return round((time.perf_counter() - started) * 1000, 2)
-
-
-def _skipped(name: str) -> StageStatus:
-    return StageStatus(name, "skipped")
+def _timed(index: int, status: str, started: float, detail: str = "") -> StageStatus:
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    return StageStatus(STAGE_NAMES[index], status, elapsed_ms, detail)
 
 
 def run_pipeline(source: str) -> CompileResult:
-    # Stage 1: lexer
+    diagnostics: list[Diagnostic] = []
+    stages: list[StageStatus] = []
+    symbols: list[dict] = []
+    trace: list[dict] = []
+
+    def skip_from(index: int) -> None:
+        for name in STAGE_NAMES[index:]:
+            stages.append(StageStatus(name, "skipped"))
+
+    # 1. Lexer
     started = time.perf_counter()
     lexed = tokenize(source)
-    tokens_out = [asdict(t) for t in lexed.tokens]
-    token_count = len(lexed.tokens) - 1  # the EOF token is not counted
-    diagnostics = [Diagnostic("lexer", e.code, e.message, e.line, e.col) for e in lexed.errors]
-
+    token_dicts = [_token_dict(t) for t in lexed.tokens]
     if lexed.errors:
-        stages = [
-            StageStatus("Lexer", "failed", _ms(started), f"{len(lexed.errors)} error(s)"),
-            _skipped("Parser"),
-            _skipped("Semantic analyzer"),
-            _skipped("Interpreter"),
-        ]
+        stages.append(_timed(0, "failed", started, f"{len(lexed.errors)} error(s)"))
+        diagnostics.extend(_diagnostics("lexer", lexed.errors))
+        skip_from(1)
         return CompileResult(
             False,
             ["Stopped at the lexer. See Problems for details."],
-            diagnostics, stages, tokens_out, None, [], [],
+            diagnostics, stages, token_dicts, None, symbols, trace,
         )
+    token_count = sum(1 for t in lexed.tokens if t.kind != "EOF")
+    stages.append(_timed(0, "passed", started, f"{token_count} tokens"))
 
-    lexer_stage = StageStatus("Lexer", "passed", _ms(started), f"{token_count} tokens")
-
-    # Stage 2: parser
+    # 2. Parser
     started = time.perf_counter()
     parsed = parse(lexed.tokens)
-    diagnostics += [Diagnostic("parser", e.code, e.message, e.line, e.col) for e in parsed.errors]
-
     if parsed.errors:
-        stages = [
-            lexer_stage,
-            StageStatus("Parser", "failed", _ms(started), f"{len(parsed.errors)} error(s)"),
-            _skipped("Semantic analyzer"),
-            _skipped("Interpreter"),
-        ]
+        stages.append(_timed(1, "failed", started, f"{len(parsed.errors)} error(s)"))
+        diagnostics.extend(_diagnostics("parser", parsed.errors))
+        skip_from(2)
         return CompileResult(
             False,
             ["Stopped at the parser. See Problems for details."],
-            diagnostics, stages, tokens_out, None, [], [],
+            diagnostics, stages, token_dicts, None, symbols, trace,
         )
+    ast = parsed.ast
+    stages.append(_timed(1, "passed", started, f"{count_nodes(ast)} AST nodes"))
 
-    nodes = count_nodes(parsed.ast)
-    parser_stage = StageStatus("Parser", "passed", _ms(started), f"{nodes} AST nodes")
-
-    # Stage 3: semantic analysis. Every error is reported before anything runs.
+    # 3. Semantic analyzer
     started = time.perf_counter()
-    checked = analyze(parsed.ast)
-    diagnostics += [Diagnostic("semantic", e.code, e.message, e.line, e.col) for e in checked.errors]
-
-    if checked.errors:
-        stages = [
-            lexer_stage,
-            parser_stage,
-            StageStatus("Semantic analyzer", "failed", _ms(started), f"{len(checked.errors)} error(s)"),
-            _skipped("Interpreter"),
-        ]
+    analysis = analyze(ast)
+    symbols = [_as_dict(s) for s in analysis.symbols]
+    if analysis.errors:
+        stages.append(_timed(2, "failed", started, f"{len(analysis.errors)} error(s)"))
+        diagnostics.extend(_diagnostics("semantic", analysis.errors))
+        skip_from(3)
         return CompileResult(
             False,
             ["Stopped at the semantic analyzer. See Problems for details."],
-            diagnostics, stages, tokens_out, parsed.ast, checked.symbols, [],
+            diagnostics, stages, token_dicts, ast, symbols, trace,
+        )
+    stages.append(_timed(2, "passed", started, f"{len(symbols)} symbol(s), no errors"))
+
+    # 4. Interpreter
+    started = time.perf_counter()
+    unsupported = find_unsupported(ast)
+    if unsupported is not None:
+        feature, phase, _node = unsupported
+        stages.append(_timed(3, "not_implemented", started, f"{feature} · Phase {phase}"))
+        return CompileResult(
+            False,
+            [f"Not run yet: {feature} (Phase {phase}). Nothing was executed."],
+            diagnostics, stages, token_dicts, ast, symbols, trace,
         )
 
-    semantic_stage = StageStatus(
-        "Semantic analyzer", "passed", _ms(started), f"{len(checked.symbols)} symbol(s), no errors"
-    )
-
-    # Stage 4: interpreter. Constructs from later phases are found before anything runs.
-    started = time.perf_counter()
-    blocked = find_unsupported(parsed.ast)
-    if blocked is not None:
-        feature, phase, _where = blocked
-        stages = [
-            lexer_stage,
-            parser_stage,
-            semantic_stage,
-            StageStatus("Interpreter", "not_implemented", 0.0, f"{feature} · Phase {phase}"),
-        ]
-        output = [f"Not run yet: {feature} (Phase {phase}). Nothing was executed."]
-        return CompileResult(False, output, [], stages, tokens_out, parsed.ast, checked.symbols, [])
-
-    interp = Interpreter()
+    interpreter = Interpreter()
     try:
-        interp.run(parsed.ast)
-    except RunError as err:
-        diagnostics.append(Diagnostic("interpreter", err.code, err.message, err.line, err.col))
-        stages = [
-            lexer_stage,
-            parser_stage,
-            semantic_stage,
-            StageStatus("Interpreter", "failed", _ms(started), "1 error(s)"),
-        ]
-        output = interp.output + ["Stopped at the interpreter. See Problems for details."]
-        return CompileResult(False, output, diagnostics, stages, tokens_out, parsed.ast, checked.symbols, [])
+        interpreter.run(ast)
+    except RunError as error:
+        stages.append(_timed(3, "failed", started, "1 error(s)"))
+        diagnostics.append(
+            Diagnostic("interpreter", error.code, error.message, error.line, error.col)
+        )
+        output = list(interpreter.output) + ["Stopped at the interpreter. See Problems for details."]
+        return CompileResult(
+            False, output, diagnostics, stages, token_dicts, ast, symbols, interpreter.trace,
+        )
 
-    stages = [
-        lexer_stage,
-        parser_stage,
-        semantic_stage,
-        StageStatus("Interpreter", "passed", _ms(started), f"{len(interp.output)} line(s) printed"),
-    ]
-    return CompileResult(True, interp.output, [], stages, tokens_out, parsed.ast, checked.symbols, [])
+    stages.append(_timed(3, "passed", started, f"{len(interpreter.output)} line(s) printed"))
+    return CompileResult(
+        True, list(interpreter.output), diagnostics, stages, token_dicts, ast, symbols,
+        interpreter.trace,
+    )

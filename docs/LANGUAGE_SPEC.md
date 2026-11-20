@@ -125,3 +125,13 @@ for (int i = 1; i <= 3; i++) {
 - E203: an if, while, or for condition must be bool.
 - E304: break or continue outside a loop. E305: return outside a function.
 - The interpreter keeps its own type checks as a safety net. Runtime errors (E501 division by zero, E502 overflow) are found only during execution.
+
+## Phase 5 additions
+
+- `if` / `else` / `else if`: the condition must be bool (E203). Each branch is its own block scope.
+- `while (cond) { }`: the condition is checked before every iteration.
+- `for (init; cond; step) { }`: the variable declared in `init` lives in a scope for the whole loop and is gone afterwards. An empty condition counts as `true`.
+- `break` exits the innermost loop. `continue` skips to the next iteration (`for` still runs its step). Either one outside a loop is E304.
+- Execution limit: the interpreter stops after 1,000,000 steps with E504 "Step limit of 1,000,000 reached".
+- Execution trace: each recorded step has STEP, LINE, OPERATION, and RESULT, plus a snapshot of the visible variables. The trace stores at most 500 steps; after that a final entry says the trace limit was reached, and the program keeps running.
+- Still not executable (Phase 6): functions, `return`, and calls to user-defined functions.
