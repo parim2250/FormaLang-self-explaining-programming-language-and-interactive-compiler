@@ -1,0 +1,23 @@
+from app.compiler.pipeline import run_pipeline
+
+
+def test_valid_program_passes_parser():
+    r = run_pipeline("int x = 1;")
+    assert [s.status for s in r.stages] == ["passed", "passed", "not_implemented", "not_implemented"]
+    assert r.ast["type"] == "Program"
+    assert r.output[1].startswith("Parser:")
+    assert r.diagnostics == []
+
+
+def test_syntax_error_stops_before_semantics():
+    r = run_pipeline("int x = ;")
+    assert [s.status for s in r.stages] == ["passed", "failed", "skipped", "skipped"]
+    assert r.ast is None
+    diag = r.diagnostics[0]
+    assert (diag.stage, diag.code, diag.line, diag.col) == ("parser", "E401", 1, 9)
+
+
+def test_lexer_error_still_skips_parser():
+    r = run_pipeline("int x = 1 @;")
+    assert r.stages[0].status == "failed"
+    assert r.stages[1].status == "skipped"

@@ -174,3 +174,46 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .dfa .dfa-ok { fill: var(--ok); }
 .problem { cursor: pointer; }
 .problem:hover { background: var(--panel-2); }
+/* ---- Phase 2: parser view ---- */
+.pv-card {
+  background: #14181f;
+  border: 1px solid #2a313c;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.pv-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8b95a5;
+  margin-bottom: 8px;
+}
+.pv-code {
+  margin: 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #d6dde8;
+  white-space: pre;
+  overflow: auto;
+  max-height: 320px;
+}
+.pv-tree {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  color: #d6dde8;
+  overflow: auto;
+}
+.pv-tree > details { margin-left: 0; }
+.pv-tree details { margin-left: 14px; }
+.pv-tree summary { cursor: pointer; list-style: none; }
+.pv-tree summary::-webkit-details-marker { display: none; }
+.pv-leaf { margin-left: 14px; }
+.pv-head { white-space: nowrap; }
+.pv-label { color: #8b95a5; }
+.pv-type { color: #7dd3fc; font-weight: 600; }
+.pv-attrs { color: #fbbf24; }
+.pv-pos { color: #5b6573; margin-left: 8px; }
+.pv-note { color: #8b95a5; font-size: 13px; margin: 8px 0; }
