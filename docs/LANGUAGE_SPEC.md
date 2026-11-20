@@ -114,3 +114,14 @@ for (int i = 1; i <= 3; i++) {
 - `int(x)` truncates a float toward zero. `float(x)` accepts int or float. `string(x)` converts any value to text. `bool(x)` accepts only bool.
 - A float prints with a decimal point, for example `3.0`.
 - Phase 3 runtime type checks are a safety net. Phase 4 moves most of them before execution.
+
+## Phase 4 decisions
+
+- The semantic analyzer runs before execution and reports every error it finds. Checks on a value whose type is already unknown are skipped, so one mistake does not cause follow-up errors.
+- A variable is visible only after its declaration. Its initializer cannot use the variable itself.
+- Functions are global. A call may come before the definition. A function body sees only the global variables declared before it.
+- The built-in `print` cannot be redefined.
+- Function rules are checked here: argument count (E204), argument types (E205, with int widening to float), return type (E206), and missing return (E206). A non-void function must return on every path. `while (true)` without `break` counts as always returning.
+- E203: an if, while, or for condition must be bool.
+- E304: break or continue outside a loop. E305: return outside a function.
+- The interpreter keeps its own type checks as a safety net. Runtime errors (E501 division by zero, E502 overflow) are found only during execution.

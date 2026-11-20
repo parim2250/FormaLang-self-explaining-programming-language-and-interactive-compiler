@@ -10,10 +10,10 @@ def out(source):
 def fails(source):
     r = run_pipeline(source)
     assert not r.ok
-    assert r.stages[3].status == "failed"
+    failed = [s for s in r.stages if s.status == "failed"]
+    assert len(failed) == 1
     assert len(r.diagnostics) == 1
     return r.diagnostics[0]
-
 
 # ------------------------------------------------------------ output
 

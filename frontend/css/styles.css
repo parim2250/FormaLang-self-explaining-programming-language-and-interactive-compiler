@@ -217,3 +217,65 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .pv-attrs { color: #fbbf24; }
 .pv-pos { color: #5b6573; margin-left: 8px; }
 .pv-note { color: #8b95a5; font-size: 13px; margin: 8px 0; }
+
+/* ---- Phase 4: semantic view ---- */
+.sv-card {
+  background: #14181f;
+  border: 1px solid #2a313c;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.sv-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8b95a5;
+  margin-bottom: 8px;
+}
+.sv-note { color: #8b95a5; font-size: 13px; margin: 8px 0; }
+.sv-ok { color: #4ade80; font-size: 13px; margin: 8px 0; }
+.sv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+}
+.sv-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #8b95a5;
+  padding: 6px 8px;
+  border-bottom: 1px solid #2a313c;
+}
+.sv-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #1c222b;
+  color: #d6dde8;
+}
+.sv-name { color: #7dd3fc; font-weight: 600; }
+.sv-type { color: #fbbf24; }
+.sv-scope { color: #8b95a5; }
+.sv-issue {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid #1c222b;
+  font-size: 13px;
+}
+.sv-code {
+  color: #f87171;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sv-msg { color: #d6dde8; flex: 1; }
+.sv-pos {
+  color: #5b6573;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  white-space: nowrap;
+}

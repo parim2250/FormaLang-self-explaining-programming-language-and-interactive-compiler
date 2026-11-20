@@ -8,8 +8,8 @@ def test_valid_program_passes_lexer():
     assert r.diagnostics == []
     assert r.tokens[-1]["kind"] == "EOF"
     assert r.stages[1].status == "passed"
-    assert r.stages[2].status == "not_implemented"
-
+    assert r.stages[2].status == "passed"
+    assert r.stages[3].status == "passed"
 def test_lexer_error_stops_the_pipeline():
     r = run_pipeline("int x = 1 @;")
     assert r.stages[0].status == "failed"

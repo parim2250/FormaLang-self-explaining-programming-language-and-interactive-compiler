@@ -3,7 +3,7 @@ from app.compiler.pipeline import run_pipeline
 
 def test_valid_program_runs():
     r = run_pipeline("int x = 1;")
-    assert [s.status for s in r.stages] == ["passed", "passed", "not_implemented", "passed"]
+    assert [s.status for s in r.stages] == ["passed", "passed", "passed", "passed"]
     assert r.ok is True
     assert r.output == []
     assert r.ast["type"] == "Program"

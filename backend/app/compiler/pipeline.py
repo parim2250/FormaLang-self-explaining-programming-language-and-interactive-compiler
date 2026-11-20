@@ -1,7 +1,7 @@
 """Pipeline: runs the compiler stages in order and collects one CompileResult.
 
 Contract: fields may be added, never renamed or removed.
-Diagnostic.stage uses lowercase stage keys: "lexer", "parser", "interpreter".
+Diagnostic.stage uses lowercase stage keys: "lexer", "parser", "semantic", "interpreter".
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from app.compiler.interpreter import Interpreter, RunError, find_unsupported
 from app.compiler.lexer import tokenize
 from app.compiler.parser import count_nodes, parse
+from app.compiler.semantic import analyze
 
 VERSION = "0.1.0"
 STAGE_NAMES = ["Lexer", "Parser", "Semantic analyzer", "Interpreter"]
@@ -65,10 +66,6 @@ def _skipped(name: str) -> StageStatus:
     return StageStatus(name, "skipped")
 
 
-def _not_implemented(name: str) -> StageStatus:
-    return StageStatus(name, "not_implemented")
-
-
 def run_pipeline(source: str) -> CompileResult:
     # Stage 1: lexer
     started = time.perf_counter()
@@ -112,9 +109,30 @@ def run_pipeline(source: str) -> CompileResult:
 
     nodes = count_nodes(parsed.ast)
     parser_stage = StageStatus("Parser", "passed", _ms(started), f"{nodes} AST nodes")
-    semantic_stage = _not_implemented("Semantic analyzer")  # Phase 4
 
-    # Stage 3: interpreter. Constructs from later phases are found before anything runs.
+    # Stage 3: semantic analysis. Every error is reported before anything runs.
+    started = time.perf_counter()
+    checked = analyze(parsed.ast)
+    diagnostics += [Diagnostic("semantic", e.code, e.message, e.line, e.col) for e in checked.errors]
+
+    if checked.errors:
+        stages = [
+            lexer_stage,
+            parser_stage,
+            StageStatus("Semantic analyzer", "failed", _ms(started), f"{len(checked.errors)} error(s)"),
+            _skipped("Interpreter"),
+        ]
+        return CompileResult(
+            False,
+            ["Stopped at the semantic analyzer. See Problems for details."],
+            diagnostics, stages, tokens_out, parsed.ast, checked.symbols, [],
+        )
+
+    semantic_stage = StageStatus(
+        "Semantic analyzer", "passed", _ms(started), f"{len(checked.symbols)} symbol(s), no errors"
+    )
+
+    # Stage 4: interpreter. Constructs from later phases are found before anything runs.
     started = time.perf_counter()
     blocked = find_unsupported(parsed.ast)
     if blocked is not None:
@@ -126,7 +144,7 @@ def run_pipeline(source: str) -> CompileResult:
             StageStatus("Interpreter", "not_implemented", 0.0, f"{feature} · Phase {phase}"),
         ]
         output = [f"Not run yet: {feature} (Phase {phase}). Nothing was executed."]
-        return CompileResult(False, output, [], stages, tokens_out, parsed.ast, [], [])
+        return CompileResult(False, output, [], stages, tokens_out, parsed.ast, checked.symbols, [])
 
     interp = Interpreter()
     try:
@@ -140,7 +158,7 @@ def run_pipeline(source: str) -> CompileResult:
             StageStatus("Interpreter", "failed", _ms(started), "1 error(s)"),
         ]
         output = interp.output + ["Stopped at the interpreter. See Problems for details."]
-        return CompileResult(False, output, diagnostics, stages, tokens_out, parsed.ast, [], [])
+        return CompileResult(False, output, diagnostics, stages, tokens_out, parsed.ast, checked.symbols, [])
 
     stages = [
         lexer_stage,
@@ -148,4 +166,4 @@ def run_pipeline(source: str) -> CompileResult:
         semantic_stage,
         StageStatus("Interpreter", "passed", _ms(started), f"{len(interp.output)} line(s) printed"),
     ]
-    return CompileResult(True, interp.output, [], stages, tokens_out, parsed.ast, [], [])
+    return CompileResult(True, interp.output, [], stages, tokens_out, parsed.ast, checked.symbols, [])
