@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FormaLang</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">F</span>
+      <span class="brand-name">FormaLang</span>
+      <button class="project-switch" type="button">untitled-project <i data-lucide="chevron-down"></i></button>
+      <span class="badge">Local project</span>
+    </div>
+    <div class="tagline">Write → Run → Understand</div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="btnReset" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
+      <button class="btn btn-primary" id="btnRun" type="button"><i data-lucide="play"></i> Run <kbd id="runKbd">⌘ ↵</kbd></button>
+      <button class="btn btn-ghost" id="btnAi" type="button"><i data-lucide="sparkles"></i> Ask AI</button>
+      <button class="icon-btn open-settings" type="button" title="Settings"><i data-lucide="settings"></i></button>
+    </div>
+  </header>
+
+  <div class="main" id="mainGrid">
+
+    <!-- ACTIVITY BAR -->
+    <nav class="activitybar">
+      <button class="act active" type="button" title="Explorer"><i data-lucide="files"></i></button>
+      <button class="act" type="button" title="Search"><i data-lucide="search"></i></button>
+      <button class="act" type="button" title="Source control"><i data-lucide="git-branch"></i></button>
+      <button class="act" type="button" title="Language guide"><i data-lucide="book-open"></i></button>
+      <button class="act bottom open-settings" type="button" title="Settings"><i data-lucide="settings"></i></button>
+    </nav>
+
+    <!-- EXPLORER -->
+    <aside class="explorer">
+      <div class="panel-header"><span>Explorer</span><button class="icon-btn sm" type="button"><i data-lucide="more-horizontal"></i></button></div>
+      <div class="tree">
+        <div class="tree-root"><i data-lucide="chevron-down"></i> UNTITLED-PROJECT</div>
+        <div class="tree-row indent-1"><i data-lucide="chevron-down"></i><i data-lucide="folder"></i> src</div>
+        <div class="tree-row indent-2 active"><i data-lucide="file-code"></i> main.forma</div>
+        <div class="tree-row indent-2 muted"><i data-lucide="file-code"></i> utils.forma</div>
+        <div class="tree-row indent-1 muted"><i data-lucide="braces"></i> formalang.json</div>
+        <div class="tree-row indent-1 muted"><i data-lucide="file-text"></i> README.md</div>
+      </div>
+      <div class="newcard">
+        <div class="newcard-title">NEW TO FORMALANG</div>
+        <div>A little language.<br />A lot to discover.</div>
+        <a href="#" class="link">Language guide ↗</a>
+      </div>
+    </aside>
+
+    <!-- EDITOR COLUMN -->
+    <section class="editor-col">
+      <div class="tabs">
+        <div class="tab active"><i data-lucide="file-code"></i> main.forma
+          <button class="icon-btn sm" type="button"><i data-lucide="x"></i></button>
+        </div>
+      </div>
+      <div class="breadcrumb">untitled-project / src / main.forma</div>
+
+      <div class="editor-wrap">
+        <div id="editor"></div>
+        <div class="empty-state hidden" id="emptyState">
+          <div class="empty-icon">{ }</div>
+          <h2>Your next idea starts here</h2>
+          <p>Write some FormaLang, or start with an example.</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" id="btnLoadExample" type="button">Load example</button>
+            <button class="btn btn-ghost" type="button">View docs ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSOLE / PROBLEMS -->
+      <section class="bottom-panel">
+        <div class="panel-tabs">
+          <button class="ptab active" data-panel="consoleView" type="button">Console</button>
+          <button class="ptab" data-panel="problemsView" type="button">Problems <span class="count" id="problemCount">0</span></button>
+          <span class="spacer"></span>
+          <span class="run-status" id="runStatus">● Ready</span>
+          <button class="btn btn-ghost sm" id="btnClear" type="button">Clear</button>
+        </div>
+        <div class="panel-body">
+          <div class="panel-pane active" id="consoleView">
+            <div class="console-empty" id="consoleEmpty">
+              <i data-lucide="terminal"></i>
+              <div class="empty-title">A clean slate.</div>
+              <div class="muted">Run your program to see output, diagnostics, and timing here.</div>
+            </div>
+            <div id="consoleOutput"></div>
+          </div>
+          <div class="panel-pane" id="problemsView"></div>
+        </div>
+      </section>
+
+      <!-- SHOW HOW IT WORKS -->
+      <section class="how">
+        <button class="how-header" id="howToggle" type="button">
+          <span id="howCaret">▸</span>
+          <span class="how-title">Show how it works</span>
+          <span class="badge badge-accent">Compile view</span>
+          <span class="muted">From source to understanding</span>
+          <span class="spacer"></span>
+          <span class="muted" id="howSummary">Not run yet</span>
+        </button>
+        <div class="how-body hidden" id="howBody">
+          <div class="stages" id="stages"></div>
+          <div class="stage-detail" id="stageDetail">Run your program to inspect this stage.</div>
+        </div>
+      </section>
+    </section>
+
+    <!-- FORMA ASSISTANT (Groq, inert until key is set) -->
+    <aside class="ai-panel hidden" id="aiPanel">
+      <div class="panel-header">
+        <span class="ai-title"><i data-lucide="sparkles"></i> Forma Assistant</span>
+        <span class="ai-powered">Powered by Groq</span>
+        <span class="badge" id="aiStatus">Disabled</span>
+        <button class="icon-btn sm" id="btnCloseAi" type="button"><i data-lucide="x"></i></button>
+      </div>
+      <div class="ai-body">
+        <div class="ai-notice">Add <code>GROQ_API_KEY</code> to <code>backend/.env</code> to enable explanations. Everything else in FormaLang works without it.</div>
+        <div class="chips">
+          <button class="chip" disabled>Explain my code</button>
+          <button class="chip" disabled>Explain error</button>
+          <button class="chip" disabled>Why this output?</button>
+          <button class="chip" disabled>Explain execution flow</button>
+          <button class="chip" disabled>Suggest a fix</button>
+        </div>
+        <div class="muted">Ask about your program once a key is configured.</div>
+      </div>
+      <div class="ai-input">
+        <input id="aiInput" placeholder="Ask about this code..." disabled />
+        <button class="icon-btn" type="button" disabled><i data-lucide="send"></i></button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- STATUS BAR -->
+  <footer class="statusbar">
+    <span>⎇ main</span>
+    <span id="saveStatus">● All changes saved</span>
+    <span class="spacer"></span>
+    <span id="cursorPos">Ln 1, Col 1</span>
+    <span>Spaces: 4</span>
+    <span>UTF-8</span>
+    <span>FormaLang v0.1</span>
+  </footer>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="icon-btn sm" data-close type="button"><i data-lucide="x"></i></button>
+    </div>
+    <div class="setting">
+      <div>
+        <div class="setting-title">Groq API key</div>
+        <div class="muted">Read from <code>backend/.env</code> (GROQ_API_KEY). Never stored in the browser.</div>
+      </div>
+      <span class="badge" id="groqStatus">Not configured</span>
+    </div>
+    <label class="setting">
+      <div>
+        <div class="setting-title">Always open compile view</div>
+        <div class="muted">Expand "Show how it works" automatically.</div>
+      </div>
+      <input type="checkbox" id="prefShowHow" />
+    </label>
+  </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
