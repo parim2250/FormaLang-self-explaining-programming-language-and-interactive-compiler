@@ -444,3 +444,23 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ---------- Phase 9: Forma Assistant replies (ai-assistant.js) ---------- */
+.chip.live { color: var(--text); border-color: #33333f; cursor: pointer; }
+.chip.live:hover { border-color: var(--accent); }
+.ai-reply {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.ai-reply-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.ai-reply-text { white-space: pre-wrap; line-height: 1.6; }
+.ai-reply-text.err { color: var(--err); }
