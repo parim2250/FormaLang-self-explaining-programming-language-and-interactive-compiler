@@ -1,0 +1,23 @@
+{
+  "hello": {"ok": true, "output": ["Hello, FormaLang!"], "codes": []},
+  "tour": {"ok": true, "output": ["Hello from FormaLang!", "Step 1", "Step 2", "Step 3"], "codes": []},
+  "types": {"ok": true, "output": ["7.5", "7", "7 apples"], "codes": []},
+  "sum": {"ok": true, "output": ["Sum of 1 to 10 = 55"], "codes": []},
+  "collatz": {"ok": true, "output": ["Collatz steps: 111"], "codes": []},
+  "factorial": {"ok": true, "output": ["5! = 120"], "codes": []},
+  "fail-type": {
+    "ok": false,
+    "output": ["Stopped at the semantic analyzer. See Problems for details."],
+    "codes": ["E201"]
+  },
+  "fail-undeclared": {
+    "ok": false,
+    "output": ["Stopped at the semantic analyzer. See Problems for details."],
+    "codes": ["E301"]
+  },
+  "fail-divide": {
+    "ok": false,
+    "output": ["Stopped at the interpreter. See Problems for details."],
+    "codes": ["E501"]
+  }
+}

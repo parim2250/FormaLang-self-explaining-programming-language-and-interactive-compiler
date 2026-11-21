@@ -1,0 +1,13 @@
+// FormaLang: a small language with a readable compiler
+string greet(string name) {
+    return "Hello from " + name + "!";
+}
+
+string language = "FormaLang";
+float version = 1.0;
+// float version = "1.0";   // E201: a string cannot become a float
+
+print(greet(language));
+for (int i = 1; i <= 3; i++) {
+    print("Step " + i);
+}
