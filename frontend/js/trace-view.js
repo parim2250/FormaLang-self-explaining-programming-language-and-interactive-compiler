@@ -1,6 +1,6 @@
-// Phase 5: execution trace and step-through view.
+// Phase 5 and 6: execution trace, step-through view, and call stack.
 // Renders into #stageDetail when the Interpreter stage card (index 3) is clicked.
-// Same pattern as parser-view.js and semantic-view.js; moves into app.js in Phase 7.
+// Moves into app.js in Phase 7.
 
 const INTERPRETER_CARD_INDEX = 3;
 const PLAY_INTERVAL_MS = 600;
@@ -63,14 +63,21 @@ function renderTrace() {
 
   stepIndex = Math.min(Math.max(stepIndex, 0), trace.length - 1);
   const current = trace[stepIndex];
+  const frames = Array.isArray(current.call_stack) && current.call_stack.length
+    ? current.call_stack
+    : ["global"];
+  const depth = frames.length - 1;
 
   const rows = trace.map((entry, index) => `
     <tr class="tv-row${index === stepIndex ? " active" : ""}" data-trace-step="${index}">
       <td class="tv-num">${esc(entry.step)}</td>
       <td class="tv-num">${esc(entry.line)}</td>
-      <td><code>${esc(entry.operation)}</code></td>
+      <td style="padding-left:${8 + (entry.depth ?? 0) * 14}px"><code>${esc(entry.operation)}</code></td>
       <td>${esc(entry.result)}</td>
     </tr>`).join("");
+
+  const frameRows = frames.slice().reverse().map((frame, i) => `
+    <li class="tv-frame${i === 0 ? " top" : ""}"><code>${esc(frame)}</code></li>`).join("");
 
   const variables = current.variables ?? [];
   const variableRows = variables.length
@@ -103,6 +110,13 @@ function renderTrace() {
           <tbody>${rows}</tbody>
         </table>
       </div>
+    </div>
+    <div class="tv-card">
+      <div class="tv-head">
+        <span class="tv-title">Call stack</span>
+        <span class="tv-count">depth ${depth}</span>
+      </div>
+      <ol class="tv-stack">${frameRows}</ol>
     </div>
     <div class="tv-card">
       <div class="tv-head">

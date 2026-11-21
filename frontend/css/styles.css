@@ -327,3 +327,17 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .tv-num { color: var(--muted, #8b93a7); width: 56px; }
 .tv-empty, .tv-note { color: var(--muted, #8b93a7); font-size: 13px; padding: 8px 4px; }
 .tv-footer { font-size: 12px; color: var(--muted, #8b93a7); padding: 4px 2px; }
+
+/* ---------- Phase 6: call stack (trace-view.js) ---------- */
+.tv-stack { list-style: none; margin: 0; padding: 0; }
+.tv-frame {
+  padding: 5px 8px;
+  border-left: 2px solid var(--border, #2a2f3a);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.tv-frame.top {
+  border-left-color: var(--accent, #7aa2f7);
+  background: rgba(122, 162, 247, 0.10);
+}
+.tv-frame code { font-family: "JetBrains Mono", monospace; }

@@ -135,3 +135,14 @@ for (int i = 1; i <= 3; i++) {
 - Execution limit: the interpreter stops after 1,000,000 steps with E504 "Step limit of 1,000,000 reached".
 - Execution trace: each recorded step has STEP, LINE, OPERATION, and RESULT, plus a snapshot of the visible variables. The trace stores at most 500 steps; after that a final entry says the trace limit was reached, and the program keeps running.
 - Still not executable (Phase 6): functions, `return`, and calls to user-defined functions.
+
+## Phase 6 additions
+
+- Functions: `type name(type p1, type p2) { ... }`. Declared at the top level only. A call may appear before the definition.
+- Parameters are passed by value. Changing a parameter does not change the caller's variable.
+- The argument count must match the parameter count (E204). Each argument must match its parameter type, except that int widens to float (E205).
+- `return expr;` leaves the function at once. `return;` is allowed only in a void function. A non-void function must return on every path (E206). `return` outside a function is E305.
+- A function body sees its parameters, its own locals, and global variables declared before the function definition. It cannot see the caller's locals.
+- Recursion is allowed. A call chain deeper than 200 calls stops with E503 "Call depth limit of 200 reached".
+- Execution trace: each step records its call depth and the call stack. Calls and returns are recorded as steps.
+- Every construct in v0.1 of the language now runs. Nothing is reported as "not run yet".

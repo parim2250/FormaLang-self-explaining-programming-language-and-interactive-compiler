@@ -130,13 +130,6 @@ def test_control_flow_has_no_unsupported_features():
     assert find_unsupported(parse(tokens).ast) is None
 
 
-def test_functions_are_still_reported_as_phase_6():
-    result = run_pipeline("void f() { }")
-    interpreter = stage(result, "Interpreter")
-    assert interpreter.status == "not_implemented"
-    assert interpreter.detail == "functions · Phase 6"
-
-
 def test_interpreter_detail_counts_lines():
     result = run_pipeline("int x = 1; print(x);")
     assert stage(result, "Interpreter").detail == "1 line(s) printed"

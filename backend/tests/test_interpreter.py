@@ -151,12 +151,13 @@ def test_void_cannot_be_stored():
 
 # ------------------------------------------------- later-phase constructs
 
+def test_function_declaration_runs_without_output():
+    from app.compiler.pipeline import run_pipeline
 
+    result = run_pipeline("void f() { }")
+    assert result.ok
+    assert result.output == []
 
-def test_function_declaration_is_reported_as_phase_6():
-    r = run_pipeline("int f() { return 1; }")
-    assert r.stages[3].status == "not_implemented"
-    assert "Phase 6" in r.stages[3].detail
 
 def test_loops_are_reported_not_run():
     from app.compiler.interpreter import find_unsupported
@@ -166,10 +167,3 @@ def test_loops_are_reported_not_run():
     tokens = tokenize("while (true) { break; }").tokens
     assert find_unsupported(parse(tokens).ast) is None
 
-
-def test_unsupported_construct_runs_nothing():
-    from app.compiler.pipeline import run_pipeline
-
-    result = run_pipeline("void f() { }")
-    assert not result.ok
-    assert result.output == ["Not run yet: functions (Phase 6). Nothing was executed."]

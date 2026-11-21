@@ -1,9 +1,9 @@
-"""FormaLang interpreter: tree-walking execution with an execution trace.
+"""FormaLang interpreter: tree-walking execution with functions and an execution trace.
 
 Phase 3 added declarations, expressions and print.
-Phase 5 adds if/else, while, for, break, continue, the step limit (E504)
-and the execution trace. Functions and return are still reported by
-find_unsupported until Phase 6.
+Phase 5 added if/else, while, for, break, continue, the step limit (E504) and the trace.
+Phase 6 adds user functions, parameters, return, the call depth limit (E503),
+and the call stack recorded in every trace step.
 """
 
 from __future__ import annotations
@@ -11,12 +11,18 @@ from __future__ import annotations
 import json
 import math
 import operator
+import sys
 from typing import Any
 
 INT_MIN = -(2**63)
 INT_MAX = 2**63 - 1
 STEP_LIMIT = 1_000_000
 TRACE_LIMIT = 500
+CALL_DEPTH_LIMIT = 200
+
+# Each FormaLang call uses several Python frames, so 200 nested calls need a
+# higher Python recursion limit. RecursionError is still caught as a safety net.
+sys.setrecursionlimit(max(sys.getrecursionlimit(), 20_000))
 
 # Token kinds and lexemes both map to the same operator text.
 _OP_ALIASES = {
@@ -61,6 +67,15 @@ class _LoopSignal(Exception):
     def __init__(self, keyword: str, node: dict):
         super().__init__(keyword)
         self.keyword = keyword
+        self.node = node
+
+
+class _ReturnSignal(Exception):
+    """Raised by return; caught by the function call that is running."""
+
+    def __init__(self, value: Any, node: dict):
+        super().__init__("return")
+        self.value = value
         self.node = node
 
 
@@ -127,6 +142,13 @@ def to_text(value: Any) -> str:
     return str(value)
 
 
+def show_value(value: Any) -> str:
+    """Short form for call stack labels: strings are quoted."""
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    return to_text(value)
+
+
 def _check_int(value: int, node: dict | None) -> int:
     if value < INT_MIN or value > INT_MAX:
         raise RunError("E502", "Integer overflow: the result does not fit in a 64-bit int", node)
@@ -172,6 +194,21 @@ def convert(target: str, value: Any, node: dict | None = None) -> Any:
             return float(value)
         raise RunError("E201", f"float() only accepts int or float, not {source}", node)
     raise RunError("E201", f"Cannot convert to {target}", node)
+
+
+def _argument(value: Any, param: dict, index: int, func_name: str, call: dict) -> Any:
+    """Pass by value. Only int to float widens implicitly."""
+    source = type_name(value)
+    target = param.get("var_type", "?")
+    if source == target:
+        return value
+    if source == "int" and target == "float":
+        return float(value)
+    raise RunError(
+        "E205",
+        f"Argument {index} of '{func_name}' should be {target}, not {source}",
+        call,
+    )
 
 
 def _equal(left: Any, right: Any, node: dict | None) -> bool:
@@ -272,55 +309,56 @@ def expr_text(node: dict | None, parent: int = 0) -> str:
     return "?"
 
 
-def _walk(node: Any):
-    if isinstance(node, dict):
-        yield node
-        for value in node.values():
-            yield from _walk(value)
-    elif isinstance(node, list):
-        for item in node:
-            yield from _walk(item)
-
-
 def find_unsupported(ast: dict) -> tuple[str, int, dict] | None:
-    """Return (feature, phase, node) for the earliest construct not yet executable."""
-    found = []
-    for node in _walk(ast):
-        kind = node.get("type")
-        if kind == "FuncDecl":
-            found.append(("functions", 6, node))
-        elif kind == "Return":
-            found.append(("return", 6, node))
-        elif kind == "Call" and node.get("name") != "print":
-            found.append(("calls to user functions", 6, node))
-    if not found:
-        return None
-    found.sort(key=lambda item: (item[2].get("line", 0), item[2].get("col", 0)))
-    return found[0]
+    """Phase 6 completes the language, so nothing is reported as unsupported.
+
+    Kept so the pipeline's not_implemented path still exists for future constructs.
+    """
+    return None
 
 
 # ------------------------------------------------------------ interpreter
 
 class Interpreter:
     def __init__(self) -> None:
-        self.scopes: list[dict[str, list[Any]]] = [{}]
+        self.globals: dict[str, list[Any]] = {}
+        self.scopes: list[dict[str, list[Any]]] = [self.globals]
+        self.functions: dict[str, dict] = {}
+        self.call_stack: list[str] = []
         self.output: list[str] = []
         self.trace: list[dict[str, Any]] = []
         self.steps = 0
         self._trace_full = False
+        self._last_node: dict = {}
 
     def run(self, program: dict) -> list[str]:
-        self.scopes = [{}]
+        body = program.get("body", [])
+        self.globals = {}
+        self.scopes = [self.globals]
+        self.functions = {s["name"]: s for s in body if s.get("type") == "FuncDecl"}
+        self.call_stack = []
         self.output = []
         self.trace = []
         self.steps = 0
         self._trace_full = False
+        self._last_node = {}
         try:
-            for statement in program.get("body", []):
-                self._exec(statement)
+            for statement in body:
+                if statement.get("type") != "FuncDecl":
+                    self._exec(statement)
         except _LoopSignal as signal:
             raise RunError(
                 "E304", f"'{signal.keyword}' can only be used inside a loop", signal.node
+            ) from None
+        except _ReturnSignal as signal:
+            raise RunError(
+                "E305", "'return' can only be used inside a function", signal.node
+            ) from None
+        except RecursionError:
+            raise RunError(
+                "E503",
+                f"Call depth limit of {CALL_DEPTH_LIMIT} reached. The program calls itself too deeply.",
+                self._last_node,
             ) from None
         return self.output
 
@@ -328,6 +366,7 @@ class Interpreter:
 
     def _tick(self, node: dict) -> None:
         self.steps += 1
+        self._last_node = node
         if self.steps > STEP_LIMIT:
             raise RunError(
                 "E504",
@@ -335,29 +374,30 @@ class Interpreter:
                 node,
             )
 
+    def _frames(self) -> list[str]:
+        return ["global"] + list(self.call_stack)
+
     def _record(self, node: dict, operation: str, result: str) -> None:
         """Callers check self._trace_full first so skipped steps cost nothing."""
         if len(self.trace) >= TRACE_LIMIT:
             self._trace_full = True
-            self.trace.append({
-                "step": len(self.trace) + 1,
-                "line": node.get("line", 1),
-                "col": node.get("col", 1),
-                "operation": (
-                    f"Trace limit of {TRACE_LIMIT} steps reached. "
-                    "The program keeps running, but later steps are not shown."
-                ),
-                "result": "",
-                "variables": [],
-            })
-            return
+            operation = (
+                f"Trace limit of {TRACE_LIMIT} steps reached. "
+                "The program keeps running, but later steps are not shown."
+            )
+            result = ""
+            variables: list[dict[str, str]] = []
+        else:
+            variables = self._snapshot()
         self.trace.append({
             "step": len(self.trace) + 1,
             "line": node.get("line", 1),
             "col": node.get("col", 1),
             "operation": operation,
             "result": result,
-            "variables": self._snapshot(),
+            "depth": len(self.call_stack),
+            "call_stack": self._frames(),
+            "variables": variables,
         })
 
     def _snapshot(self) -> list[dict[str, str]]:
@@ -403,6 +443,8 @@ class Interpreter:
             self._for(node)
         elif kind == "Block":
             self._block(node.get("body", []))
+        elif kind == "Return":
+            self._return(node)
         elif kind in ("Break", "Continue"):
             keyword = "break" if kind == "Break" else "continue"
             if not self._trace_full:
@@ -526,6 +568,81 @@ class Interpreter:
         finally:
             self.scopes.pop()
 
+    def _return(self, node: dict) -> None:
+        value = None
+        if node.get("value") is not None:
+            value = self._eval(node["value"])
+        raise _ReturnSignal(value, node)
+
+    # -- functions
+
+    def _run_function_body(self, func: dict, return_type: str) -> tuple[Any, dict | None]:
+        body = func.get("body")
+        statements = body.get("body", []) if isinstance(body, dict) else (body or [])
+        try:
+            for statement in statements:
+                self._exec(statement)
+        except _ReturnSignal as signal:
+            return signal.value, signal.node
+        return default_value(return_type), None
+
+    def _invoke(self, func: dict, call: dict) -> Any:
+        name = func["name"]
+        params = func.get("params", [])
+        args = call.get("args", [])
+        if len(args) != len(params):
+            raise RunError(
+                "E204",
+                f"'{name}' takes {len(params)} argument(s), but {len(args)} were given",
+                call,
+            )
+        if len(self.call_stack) >= CALL_DEPTH_LIMIT:
+            raise RunError(
+                "E503",
+                f"Call depth limit of {CALL_DEPTH_LIMIT} reached. '{name}' calls itself too deeply.",
+                call,
+            )
+
+        # Arguments are evaluated in the caller's scope, before the frame switches.
+        values = [
+            _argument(self._eval(arg), param, index, name, call)
+            for index, (param, arg) in enumerate(zip(params, args), start=1)
+        ]
+        return_type = func.get("return_type", "void")
+        label = f"{name}({', '.join(show_value(v) for v in values)})"
+        local = {p["name"]: [p["var_type"], v] for p, v in zip(params, values)}
+
+        saved_scopes = self.scopes
+        self.scopes = [self.globals, local]
+        self.call_stack.append(label)
+        try:
+            if not self._trace_full:
+                bound = ", ".join(
+                    f"{p['name']} = {show_value(v)}" for p, v in zip(params, values)
+                ) or "no parameters"
+                self._record(call, f"call {label}", f"enter {name}: {bound}")
+
+            value, return_node = self._run_function_body(func, return_type)
+            if return_type == "void":
+                value = None
+            else:
+                value = coerce(value, type_name(value), return_type, return_node or call)
+
+            if not self._trace_full:
+                shown = "return"
+                if return_node is not None and return_node.get("value") is not None:
+                    shown = f"return {expr_text(return_node['value'])}"
+                outcome = f"{to_text(value)} to caller" if value is not None else "back to caller"
+                self._record(return_node or call, shown, outcome)
+            return value
+        except _LoopSignal as signal:
+            raise RunError(
+                "E304", f"'{signal.keyword}' can only be used inside a loop", signal.node
+            ) from None
+        finally:
+            self.scopes = saved_scopes
+            self.call_stack.pop()
+
     # -- expressions
 
     def _eval(self, node: dict) -> Any:
@@ -558,11 +675,17 @@ class Interpreter:
             return right
         return binary_op(op, self._eval(node["left"]), self._eval(node["right"]), node)
 
-    def _call(self, node: dict) -> None:
+    def _call(self, node: dict) -> Any:
         name = node.get("name")
-        args = node.get("args", [])
-        if name != "print":
+        if name == "print":
+            return self._print(node)
+        func = self.functions.get(name)
+        if func is None:
             raise RunError("E303", f"'{name}' is not a known function", node)
+        return self._invoke(func, node)
+
+    def _print(self, node: dict) -> None:
+        args = node.get("args", [])
         if len(args) != 1:
             raise RunError("E204", f"print takes 1 argument, but {len(args)} were given", node)
         text = to_text(self._eval(args[0]))
