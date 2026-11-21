@@ -9,6 +9,7 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from app.compiler.hints import hint_for
 from app.compiler.interpreter import Interpreter, RunError, find_unsupported
 from app.compiler.lexer import tokenize
 from app.compiler.parser import count_nodes, parse
@@ -33,6 +34,7 @@ class Diagnostic:
             "message": self.message,
             "line": self.line,
             "col": self.col,
+            "hint": hint_for(self.code),
         }
 
 
