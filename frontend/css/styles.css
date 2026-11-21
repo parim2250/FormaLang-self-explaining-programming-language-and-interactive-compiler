@@ -72,7 +72,8 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .link { color: var(--accent); text-decoration: none; display: inline-block; margin-top: 6px; }
 
 /* ---------- editor column ---------- */
-.editor-col { display: grid; grid-template-rows: 36px 24px minmax(0, 1fr) 170px auto; min-width: 0; min-height: 0; }
+/* .editor-col { display: grid; grid-template-rows: 36px 24px minmax(0, 1fr) 170px auto; min-width: 0; min-height: 0; } */
+.editor-col { display: grid; grid-template-rows: 36px 24px minmax(0, 1fr) 170px fit-content(40vh); min-width: 0; min-height: 0; }
 .tabs { display: flex; align-items: stretch; background: var(--panel); border-bottom: 1px solid var(--line); }
 .tab { display: flex; align-items: center; gap: 6px; padding: 0 6px 0 12px; border-right: 1px solid var(--line); color: var(--text); background: var(--bg); box-shadow: inset 0 2px 0 var(--accent); }
 .breadcrumb { display: flex; align-items: center; padding: 0 12px; font-size: 11px; color: var(--dim); font-family: var(--mono); }
@@ -105,10 +106,12 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
 .err { color: var(--err); }
 
 /* ---------- show how it works ---------- */
-.how { background: var(--bg); border-top: 1px solid var(--line); }
+/* .how { background: var(--bg); border-top: 1px solid var(--line); } */
+.how { background: var(--bg); border-top: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .how-header { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: none; border: 0; cursor: pointer; font-size: 12px; text-align: left; }
 .how-title { font-weight: 600; }
-.how-body { padding: 0 12px 12px; }
+/* .how-body { padding: 0 12px 12px; } */
+.how-body { padding: 0 12px 12px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .stage { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
 .stage:hover { border-color: #33333f; }
@@ -341,3 +344,79 @@ kbd { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: rgba(25
   background: rgba(122, 162, 247, 0.10);
 }
 .tv-frame code { font-family: "JetBrains Mono", monospace; }
+
+/* ---------- Phase 7: "Show how it works" tabs (how-tabs.js) ---------- */
+.how-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border, #2a2f3a);
+}
+.how-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted, #8b93a7);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.how-tab:hover { border-color: var(--border, #2a2f3a); color: inherit; }
+.how-tab.active {
+  color: inherit;
+  background: var(--surface-2, #1d2330);
+  border-color: var(--accent, #7aa2f7);
+}
+.sum-verdict { font-weight: 600; font-size: 13px; margin-bottom: 10px; }
+.sum-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.sum-arrow { color: var(--muted, #8b93a7); font-size: 12px; }
+.sum-chip {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #2a2f3a);
+  color: var(--muted, #8b93a7);
+}
+.sum-chip.passed { border-color: #3fb950; color: #7ee787; }
+.sum-chip.failed { border-color: #f85149; color: #ff7b72; }
+.sum-chip.not_implemented { border-color: #d29922; color: #e3b341; }
+.sum-chip.skipped, .sum-chip.pending { color: var(--muted, #8b93a7); }
+.sum-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sum-stat {
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--surface, #151922);
+}
+.sum-stat .label {
+  font-size: 11px;
+  color: var(--muted, #8b93a7);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sum-stat .value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+.sum-output {
+  background: var(--surface-2, #1d2330);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+/* ---------- Phase 7 fix: keep numeric cells on one line ---------- */
+.tv-num { white-space: nowrap; }
