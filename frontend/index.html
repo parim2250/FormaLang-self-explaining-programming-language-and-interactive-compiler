@@ -12,7 +12,7 @@
 <body>
 <div class="app">
 
-  <!-- TOP BAR -->
+   <!-- TOP BAR -->
   <header class="topbar">
     <div class="brand">
       <span class="logo">F</span>
@@ -22,63 +22,97 @@
     </div>
     <div class="tagline">Write → Run → Understand</div>
     <div class="actions">
-      <button class="btn btn-ghost" id="btnReset" type="button"><i data-lucide="rotate-ccw"></i> Reset</button>
+      <button class="btn btn-ghost" id="btnSave" type="button" title="Save file (Ctrl+S)"><i data-lucide="save"></i> Save</button>
+      <button class="btn btn-ghost" id="btnReset" type="button" title="Discard unsaved changes in this file"><i data-lucide="rotate-ccw"></i> Reset</button>
       <button class="btn btn-primary" id="btnRun" type="button"><i data-lucide="play"></i> Run <kbd id="runKbd">⌘ ↵</kbd></button>
       <button class="btn btn-ghost" id="btnAi" type="button"><i data-lucide="sparkles"></i> Ask AI</button>
       <button class="icon-btn open-settings" type="button" title="Settings"><i data-lucide="settings"></i></button>
     </div>
   </header>
 
+
   <div class="main" id="mainGrid">
+
 
     <!-- ACTIVITY BAR -->
     <nav class="activitybar">
-      <button class="act active" type="button" title="Explorer"><i data-lucide="files"></i></button>
-      <button class="act" type="button" title="Search"><i data-lucide="search"></i></button>
-      <button class="act" type="button" title="Source control"><i data-lucide="git-branch"></i></button>
-      <button class="act" type="button" title="Language guide"><i data-lucide="book-open"></i></button>
+      <button class="act active" type="button" data-view="explorer" title="Explorer"><i data-lucide="files"></i></button>
+      <button class="act" type="button" data-view="search" title="Search"><i data-lucide="search"></i></button>
+      <button class="act" type="button" data-view="scm" title="Source control"><i data-lucide="git-branch"></i></button>
+      <button class="act" type="button" id="btnGuide" title="Language guide"><i data-lucide="book-open"></i></button>
       <button class="act bottom open-settings" type="button" title="Settings"><i data-lucide="settings"></i></button>
     </nav>
 
-    <!-- EXPLORER -->
+
+    <!-- SIDEBAR: explorer, search, source control (one visible at a time) -->
     <aside class="explorer">
-      <div class="panel-header"><span>Explorer</span><button class="icon-btn sm" type="button"><i data-lucide="more-horizontal"></i></button></div>
-      <div class="tree">
-        <div class="tree-root"><i data-lucide="chevron-down"></i> UNTITLED-PROJECT</div>
-        <div class="tree-row indent-1"><i data-lucide="chevron-down"></i><i data-lucide="folder"></i> src</div>
-        <div class="tree-row indent-2 active"><i data-lucide="file-code"></i> main.forma</div>
-        <div class="tree-row indent-2 muted"><i data-lucide="file-code"></i> utils.forma</div>
-        <div class="tree-row indent-1 muted"><i data-lucide="braces"></i> formalang.json</div>
-        <div class="tree-row indent-1 muted"><i data-lucide="file-text"></i> README.md</div>
+
+      <div class="side-view" id="explorerView">
+        <div class="panel-header">
+          <span>Explorer</span>
+          <button class="icon-btn sm" id="btnExplorerMenu" type="button" title="New file or folder"><i data-lucide="more-horizontal"></i></button>
+        </div>
+        <div class="tree" id="tree"></div>
+        <div class="newcard">
+          <div class="newcard-title">NEW TO FORMALANG</div>
+          <div>A little language.<br />A lot to discover.</div>
+          <button type="button" class="link" id="openGuideLink">Language guide ↗</button>
+        </div>
       </div>
-      <div class="newcard">
-        <div class="newcard-title">NEW TO FORMALANG</div>
-        <div>A little language.<br />A lot to discover.</div>
-        <a href="#" class="link">Language guide ↗</a>
+
+      <div class="side-view hidden" id="searchView">
+        <div class="panel-header"><span>Search</span></div>
+        <div class="side-pad">
+          <input id="searchInput" class="side-input" type="search" placeholder="Search in all files" autocomplete="off" />
+        </div>
+        <div class="side-meta" id="searchMeta">Type to search all files.</div>
+        <div class="side-list" id="searchResults"></div>
       </div>
+
+      <div class="side-view hidden" id="scView">
+        <div class="panel-header"><span>Source control</span></div>
+        <div class="side-pad">
+          <input id="commitMsg" class="side-input" placeholder="Commit message" autocomplete="off" />
+          <button class="btn btn-primary sm" id="btnCommit" type="button">Commit all changes</button>
+        </div>
+        <div class="side-meta" id="scMeta"></div>
+        <div class="side-list" id="scChanges"></div>
+        <div class="section-label">Commits</div>
+        <div class="side-list" id="scLog"></div>
+      </div>
+
     </aside>
+
 
     <!-- EDITOR COLUMN -->
     <section class="editor-col">
-      <div class="tabs">
-        <div class="tab active"><i data-lucide="file-code"></i> main.forma
-          <button class="icon-btn sm" type="button"><i data-lucide="x"></i></button>
-        </div>
-      </div>
-      <div class="breadcrumb">untitled-project / src / main.forma</div>
+      <div class="tabs" id="tabs"></div>
+      <div class="breadcrumb" id="breadcrumb">untitled-project / src / main.forma</div>
 
-      <div class="editor-wrap">
+
+      <div class="editor-wrap" id="editorWrap">
         <div id="editor"></div>
         <div class="empty-state hidden" id="emptyState">
-          <div class="empty-icon">{ }</div>
-          <h2>Your next idea starts here</h2>
-          <p>Write some FormaLang, or start with an example.</p>
-          <div class="empty-actions">
-            <button class="btn btn-primary" id="btnLoadExample" type="button">Load example</button>
-            <button class="btn btn-ghost" type="button">View docs ↗</button>
+          <div id="emptyDoc">
+            <div class="empty-icon">{ }</div>
+            <h2>Your next idea starts here</h2>
+            <p>Write some FormaLang, or start with an example.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" id="btnLoadExample" type="button">Load example</button>
+              <button class="btn btn-ghost" id="btnDocs" type="button">View docs ↗</button>
+            </div>
+          </div>
+          <div id="emptyNoFile" class="hidden">
+            <div class="empty-icon">+</div>
+            <h2>No file open</h2>
+            <p>Create a file, or open one from the Explorer.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" id="btnNewFile" type="button">New file</button>
+            </div>
           </div>
         </div>
       </div>
+
 
       <!-- CONSOLE / PROBLEMS -->
       <section class="bottom-panel">
@@ -102,6 +136,7 @@
         </div>
       </section>
 
+
       <!-- SHOW HOW IT WORKS -->
       <section class="how">
         <button class="how-header" id="howToggle" type="button">
@@ -118,6 +153,7 @@
         </div>
       </section>
     </section>
+
 
     <!-- FORMA ASSISTANT (Groq, inert until key is set) -->
     <aside class="ai-panel hidden" id="aiPanel">
@@ -145,6 +181,7 @@
     </aside>
   </div>
 
+
   <!-- STATUS BAR -->
   <footer class="statusbar">
     <span>⎇ main</span>
@@ -156,6 +193,7 @@
     <span>FormaLang v0.1</span>
   </footer>
 </div>
+
 
 <!-- SETTINGS MODAL -->
 <div class="modal-backdrop hidden" id="settingsModal">
@@ -180,6 +218,99 @@
     </label>
   </div>
 </div>
+
+
+<!-- LANGUAGE GUIDE MODAL -->
+<div class="modal-backdrop hidden" id="guideModal">
+  <div class="modal guide-modal" role="dialog" aria-label="Language guide">
+    <div class="modal-header">
+      <h3>FormaLang language guide</h3>
+      <button class="icon-btn sm" data-close type="button" title="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="guide">
+
+      <h4>Your first program</h4>
+      <pre>print("Hello, FormaLang!");</pre>
+      <p>Statements end with a semicolon. Blocks use braces <code>{ }</code>. Comments start with <code>//</code>, or sit between <code>/*</code> and <code>*/</code>.</p>
+
+      <h4>Types</h4>
+      <table>
+        <tr><th>Type</th><th>Holds</th><th>Example</th></tr>
+        <tr><td><code>int</code></td><td>Whole numbers (64-bit)</td><td><code>int count = 3;</code></td></tr>
+        <tr><td><code>float</code></td><td>Decimal numbers</td><td><code>float price = 2.5;</code></td></tr>
+        <tr><td><code>bool</code></td><td><code>true</code> or <code>false</code></td><td><code>bool done = false;</code></td></tr>
+        <tr><td><code>string</code></td><td>Text in double quotes</td><td><code>string name = "Ada";</code></td></tr>
+        <tr><td><code>void</code></td><td>No value (functions that return nothing)</td><td><code>void hello() { print("hi"); }</code></td></tr>
+      </table>
+
+      <h4>Variables and assignment</h4>
+      <pre>int total = 0;
+total = total + 5;
+total += 2;
+total++;</pre>
+      <p>Declare a variable before you use it. A variable declared without a value starts at zero. An <code>int</code> can go into a <code>float</code> automatically, but a <code>float</code> cannot go into an <code>int</code>. Use <code>int(x)</code> for that.</p>
+
+      <h4>Operators</h4>
+      <table>
+        <tr><th>Kind</th><th>Operators</th></tr>
+        <tr><td>Arithmetic</td><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></td></tr>
+        <tr><td>Comparison</td><td><code>==</code> <code>!=</code> <code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code></td></tr>
+        <tr><td>Logic</td><td><code>&amp;&amp;</code> <code>||</code> <code>!</code> (bool only, short-circuit)</td></tr>
+        <tr><td>Assignment</td><td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code></td></tr>
+        <tr><td>Step</td><td><code>++</code> <code>--</code> (as statements, like <code>i++;</code>)</td></tr>
+      </table>
+      <p><code>/</code> on two ints gives a whole number (7 / 2 is 3). <code>%</code> works on ints. <code>+</code> joins strings.</p>
+
+      <h4>Conversions</h4>
+      <pre>int whole = int(2.9);     // 2, truncated toward zero
+string text = string(whole) + " apples";</pre>
+      <p>Convert with <code>int(x)</code>, <code>float(x)</code>, <code>string(x)</code>, or <code>bool(x)</code>.</p>
+
+      <h4>Decisions and loops</h4>
+      <pre>if (score &gt;= 50) {
+    print("pass");
+} else {
+    print("retry");
+}
+
+while (n &gt; 0) { n--; }
+
+for (int i = 1; i &lt;= 3; i++) {
+    if (i == 2) { continue; }
+    print(i);
+}</pre>
+      <p>Conditions must be <code>bool</code>. <code>break</code> leaves the nearest loop. <code>continue</code> skips to the next step of that loop.</p>
+
+      <h4>Functions</h4>
+      <pre>int add(int a, int b) {
+    return a + b;
+}
+print(add(2, 3));</pre>
+      <p>Functions can be called before they are defined. Arguments are passed by value, so changes inside a function do not affect the caller. A function that returns a value must return on every path. Recursion works, but more than 200 nested calls stop the program with E503.</p>
+
+      <h4>Output</h4>
+      <p><code>print(x)</code> shows any value in the Console. <code>print</code> is built in and cannot be redefined.</p>
+
+      <h4>Error codes</h4>
+      <table>
+        <tr><th>Range</th><th>Meaning</th><th>Examples</th></tr>
+        <tr><td>E1xx</td><td>Lexer: characters and literals</td><td>E101 unterminated string, E102 unexpected character</td></tr>
+        <tr><td>E2xx</td><td>Types</td><td>E201 type mismatch, E202 bad operands, E203 condition not bool</td></tr>
+        <tr><td>E3xx</td><td>Names and scope</td><td>E301 undeclared name, E302 redeclared, E303 unknown function</td></tr>
+        <tr><td>E4xx</td><td>Syntax</td><td>E401 unexpected token, E402 missing token</td></tr>
+        <tr><td>E5xx</td><td>Runtime</td><td>E501 division by zero, E502 integer overflow, E503 call depth, E504 step limit</td></tr>
+      </table>
+
+      <h4>How a program runs</h4>
+      <p>Source → Lexer → Parser → Semantic analyzer → Interpreter → Output. Open <b>Show how it works</b> under the editor to see each stage.</p>
+
+      <h4>Not in this version</h4>
+      <p>Arrays, structs, classes, <code>input()</code>, imports, closures, and <code>++</code> or <code>--</code> inside expressions.</p>
+
+    </div>
+  </div>
+</div>
+
 
 <script type="module" src="/js/app.js"></script>
 <script type="module" src="js/parser-view.js"></script>
